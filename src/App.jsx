@@ -122,6 +122,11 @@ function App() {
                                             KRHS Dashboard
                                         </a>
                                     </li>
+                                     <li>
+                                        <a href="https://jhs34.github.io/max512/" className="project-link google-sans-flex" target="_blank" rel="noopener noreferrer">
+                                            MAX512 Simulator
+                                        </a>
+                                    </li>
                                     {/* Add more projects here */}
                                 </ul>
                             </>
