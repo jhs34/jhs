@@ -1,11 +1,25 @@
 :root {
-    font-family: "Google Sans Flex", "Noto Sans KR", Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    --bg-deep: #07080d;
+    --surface-header: rgba(11, 13, 20, 0.22);
+    --surface-panel: rgba(17, 20, 28, 0.88);
+    --surface-raised: rgba(26, 30, 40, 0.72);
+    --surface-hover: rgba(36, 42, 56, 0.92);
+    --hairline: rgba(238, 240, 245, 0.11);
+    --hairline-strong: rgba(238, 240, 245, 0.2);
+    --top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    --text-primary: #eef0f5;
+    --text-secondary: #a3a9b8;
+    --text-muted: #7a8296;
+    --focus-ring: rgba(124, 156, 255, 0.55);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+    font-family: "Google Sans Flex", "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     line-height: 1.5;
     font-weight: 400;
 
-    color-scheme: light dark;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #050505;
+    color-scheme: dark;
+    color: var(--text-primary);
+    background-color: var(--bg-deep);
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -13,10 +27,14 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
-    display: flex;
-    place-items: center;
     min-width: 320px;
     min-height: 100vh;
 }
@@ -27,7 +45,7 @@ body {
 }
 
 .google-sans-flex {
-    font-family: "Google Sans Flex", sans-serif;
+    font-family: "Google Sans Flex", "Noto Sans KR", sans-serif;
     font-optical-sizing: auto;
     font-style: normal;
     font-variation-settings:
@@ -41,5 +59,4 @@ body {
     font-family: "Noto Sans KR", sans-serif;
     font-optical-sizing: auto;
     font-style: normal;
-    font-weight: 700;
 }
