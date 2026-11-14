@@ -86,6 +86,11 @@ struct ColorStop {
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
+
+  float aspect = uResolution.x / max(uResolution.y, 1.0);
+  float aspectScale = aspect / (16.0 / 9.0);
+  float coveredX = (uv.x - 0.5) * aspectScale + 0.5;
+  float rampX = clamp((uv.x - 0.5) * max(aspectScale, 0.6) + 0.5, 0.0, 1.0);
   
   ColorStop colors[3];
   colors[0] = ColorStop(uColorStops[0], 0.0);
@@ -93,9 +98,9 @@ void main() {
   colors[2] = ColorStop(uColorStops[2], 1.0);
   
   vec3 rampColor;
-  COLOR_RAMP(colors, uv.x, rampColor);
+  COLOR_RAMP(colors, rampX, rampColor);
   
-  float height = snoise(vec2(uv.x * 2.0 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
+  float height = snoise(vec2(coveredX * 2.0 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
   height = exp(height);
   height = (uv.y * 2.0 - height + 0.2);
   float intensity = 0.6 * height;
@@ -137,12 +142,15 @@ export default function Aurora(props) {
             if (!ctn) return;
             const width = ctn.offsetWidth;
             const height = ctn.offsetHeight;
+            if (width === 0 || height === 0) return;
             renderer.setSize(width, height);
             if (program) {
-                program.uniforms.uResolution.value = [width, height];
+                program.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height];
             }
         }
         window.addEventListener('resize', resize);
+        const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+        resizeObserver?.observe(ctn);
 
         const geometry = new Triangle(gl);
         if (geometry.attributes.uv) {
@@ -161,7 +169,7 @@ export default function Aurora(props) {
                 uTime: { value: 0 },
                 uAmplitude: { value: amplitude },
                 uColorStops: { value: colorStopsArray },
-                uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+                uResolution: { value: [ctn.offsetWidth || 1, ctn.offsetHeight || 1] },
                 uBlend: { value: blend }
             }
         });
@@ -190,6 +198,7 @@ export default function Aurora(props) {
         return () => {
             cancelAnimationFrame(animateId);
             window.removeEventListener('resize', resize);
+            resizeObserver?.disconnect();
             if (ctn && gl.canvas.parentNode === ctn) {
                 ctn.removeChild(gl.canvas);
             }
