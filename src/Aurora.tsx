@@ -114,12 +114,20 @@ void main() {
 }
 `;
 
-export default function Aurora(props) {
+export interface AuroraProps {
+    colorStops?: [string, string, string] | string[];
+    amplitude?: number;
+    blend?: number;
+    time?: number;
+    speed?: number;
+}
+
+export default function Aurora(props: AuroraProps) {
     const { colorStops = ['#5227FF', '#7cff67', '#5227FF'], amplitude = 1.0, blend = 0.5 } = props;
-    const propsRef = useRef(props);
+    const propsRef = useRef<AuroraProps>(props);
     propsRef.current = props;
 
-    const ctnDom = useRef(null);
+    const ctnDom = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const ctn = ctnDom.current;
@@ -128,7 +136,7 @@ export default function Aurora(props) {
         const renderer = new Renderer({
             alpha: true,
             premultipliedAlpha: true,
-            antialias: true
+            antialias: true,
         });
         const gl = renderer.gl;
         gl.clearColor(0, 0, 0, 0);
@@ -136,33 +144,17 @@ export default function Aurora(props) {
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.canvas.style.backgroundColor = 'transparent';
 
-        let program;
-
-        function resize() {
-            if (!ctn) return;
-            const width = ctn.offsetWidth;
-            const height = ctn.offsetHeight;
-            if (width === 0 || height === 0) return;
-            renderer.setSize(width, height);
-            if (program) {
-                program.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height];
-            }
-        }
-        window.addEventListener('resize', resize);
-        const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
-        resizeObserver?.observe(ctn);
-
         const geometry = new Triangle(gl);
         if (geometry.attributes.uv) {
             delete geometry.attributes.uv;
         }
 
-        const colorStopsArray = colorStops.map(hex => {
+        const colorStopsArray = colorStops.map((hex) => {
             const c = new Color(hex);
             return [c.r, c.g, c.b];
         });
 
-        program = new Program(gl, {
+        const program = new Program(gl, {
             vertex: VERT,
             fragment: FRAG,
             uniforms: {
@@ -170,22 +162,34 @@ export default function Aurora(props) {
                 uAmplitude: { value: amplitude },
                 uColorStops: { value: colorStopsArray },
                 uResolution: { value: [ctn.offsetWidth || 1, ctn.offsetHeight || 1] },
-                uBlend: { value: blend }
-            }
+                uBlend: { value: blend },
+            },
         });
+
+        function resize() {
+            if (!ctn) return;
+            const width = ctn.offsetWidth;
+            const height = ctn.offsetHeight;
+            if (width === 0 || height === 0) return;
+            renderer.setSize(width, height);
+            program.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height];
+        }
+        window.addEventListener('resize', resize);
+        const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+        resizeObserver?.observe(ctn);
 
         const mesh = new Mesh(gl, { geometry, program });
         ctn.appendChild(gl.canvas);
 
         let animateId = 0;
-        const update = t => {
+        const update = (t: number) => {
             animateId = requestAnimationFrame(update);
             const { time = t * 0.01, speed = 1.0 } = propsRef.current;
             program.uniforms.uTime.value = time * speed * 0.1;
             program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
             program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
             const stops = propsRef.current.colorStops ?? colorStops;
-            program.uniforms.uColorStops.value = stops.map(hex => {
+            program.uniforms.uColorStops.value = stops.map((hex) => {
                 const c = new Color(hex);
                 return [c.r, c.g, c.b];
             });

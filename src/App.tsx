@@ -3,19 +3,26 @@ import Aurora from './Aurora';
 import './App.css';
 import logo from './assets/logo.png';
 
-const PROJECTS = [
-    { name: 'KRHS Dashboard', url: 'https://jhs34.github.io/krhs/' },
-    { name: 'VocabFlow', url: 'https://jhs34.github.io/vocabflow/' },
-    { name: 'Lyrictify', url: 'https://jhs34.github.io/lyrictify/' },
-    { name: 'Blurify', url: 'https://jhs34.github.io/blurify/' },
+interface ProjectItem {
+    name: string;
+    url: string;
+}
+
+type ModalType = 'projects' | 'about';
+
+const PROJECTS: ProjectItem[] = [
+    { name: 'KRHS Dashboard', url: 'https://krhs.web.app' },
+    { name: 'VocabFlow', url: 'https://jhs-vocabflow.web.app' },
+    { name: 'Lyrictify', url: 'https://jhs-lyrictify.web.app' },
+    { name: 'Blurify', url: 'https://jhs-blurify.web.app' },
 ];
 
 function App() {
-    const [activeModal, setActiveModal] = useState(null); // 'projects' | 'about' | null
+    const [activeModal, setActiveModal] = useState<ModalType | null>(null);
     const [isClosing, setIsClosing] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMenuClosing, setIsMenuClosing] = useState(false);
-    const headerRef = useRef(null);
+    const headerRef = useRef<HTMLElement | null>(null);
 
     const closeMenu = useCallback(() => {
         if (!isMenuOpen || isMenuClosing) return;
@@ -35,7 +42,7 @@ function App() {
         }, 180);
     }, [activeModal, isClosing]);
 
-    const openModal = (modalType) => {
+    const openModal = (modalType: ModalType) => {
         setActiveModal(modalType);
         setIsClosing(false);
         if (isMenuOpen) {
@@ -53,15 +60,20 @@ function App() {
     };
 
     useEffect(() => {
-        const handleKeyDown = (e) => {
+        const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 if (activeModal) closeModal();
                 else if (isMenuOpen) closeMenu();
             }
         };
 
-        const handlePointerDown = (e) => {
-            if (isMenuOpen && headerRef.current && !headerRef.current.contains(e.target)) {
+        const handlePointerDown = (e: PointerEvent) => {
+            if (
+                isMenuOpen &&
+                headerRef.current &&
+                e.target instanceof Node &&
+                !headerRef.current.contains(e.target)
+            ) {
                 closeMenu();
             }
         };
