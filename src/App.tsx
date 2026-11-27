@@ -15,6 +15,7 @@ const PROJECTS: ProjectItem[] = [
     { name: 'VocabFlow', url: 'https://vocabflow-jhs.web.app' },
     { name: 'Lyrictify', url: 'https://lyrictify-jhs.web.app' },
     { name: 'Blurify', url: 'https://blurify-jhs.web.app' },
+    { name: 'PulseStage', url: 'https://pulsestage-jhs.web.app' },
 ];
 
 function App() {
