@@ -12,9 +12,9 @@ type ModalType = 'projects' | 'about';
 
 const PROJECTS: ProjectItem[] = [
     { name: 'KRHS Dashboard', url: 'https://krhs.web.app' },
-    { name: 'VocabFlow', url: 'https://jhs-vocabflow.web.app' },
-    { name: 'Lyrictify', url: 'https://jhs-lyrictify.web.app' },
-    { name: 'Blurify', url: 'https://jhs-blurify.web.app' },
+    { name: 'VocabFlow', url: 'https://vocabflow-jhs.web.app' },
+    { name: 'Lyrictify', url: 'https://lyrictify-jhs.web.app' },
+    { name: 'Blurify', url: 'https://blurify-jhs.web.app' },
 ];
 
 function App() {
