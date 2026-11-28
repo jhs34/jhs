@@ -1,5 +1,5 @@
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import './Aurora.css';
 
@@ -122,12 +122,42 @@ export interface AuroraProps {
     speed?: number;
 }
 
+const DEFAULT_COLOR_STOPS: [string, string, string] = ['#5227FF', '#7cff67', '#5227FF'];
+
 export default function Aurora(props: AuroraProps) {
-    const { colorStops = ['#5227FF', '#7cff67', '#5227FF'], amplitude = 1.0, blend = 0.5 } = props;
-    const propsRef = useRef<AuroraProps>(props);
-    propsRef.current = props;
+    const {
+        colorStops = DEFAULT_COLOR_STOPS,
+        amplitude = 1.0,
+        blend = 0.5,
+        time,
+        speed = 1.0,
+    } = props;
+
+    const colorStopsKey = colorStops.join(',');
+    const colorStopsRgb = useMemo(() => {
+        return colorStopsKey.split(',').map((hex) => {
+            const c = new Color(hex);
+            return [c.r, c.g, c.b];
+        });
+    }, [colorStopsKey]);
+
+    const stateRef = useRef({
+        amplitude,
+        blend,
+        time,
+        speed,
+        colorStopsRgb,
+    });
+    stateRef.current = {
+        amplitude,
+        blend,
+        time,
+        speed,
+        colorStopsRgb,
+    };
 
     const ctnDom = useRef<HTMLDivElement | null>(null);
+    const renderOnceRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
         const ctn = ctnDom.current;
@@ -149,22 +179,41 @@ export default function Aurora(props: AuroraProps) {
             delete geometry.attributes.uv;
         }
 
-        const colorStopsArray = colorStops.map((hex) => {
-            const c = new Color(hex);
-            return [c.r, c.g, c.b];
-        });
-
+        const initial = stateRef.current;
         const program = new Program(gl, {
             vertex: VERT,
             fragment: FRAG,
             uniforms: {
                 uTime: { value: 0 },
-                uAmplitude: { value: amplitude },
-                uColorStops: { value: colorStopsArray },
+                uAmplitude: { value: initial.amplitude },
+                uColorStops: { value: initial.colorStopsRgb },
                 uResolution: { value: [ctn.offsetWidth || 1, ctn.offsetHeight || 1] },
-                uBlend: { value: blend },
+                uBlend: { value: initial.blend },
             },
         });
+
+        const mesh = new Mesh(gl, { geometry, program });
+        ctn.appendChild(gl.canvas);
+
+        let animateId = 0;
+        let lastTime = 0;
+
+        const motionQuery =
+            typeof window.matchMedia === 'function'
+                ? window.matchMedia('(prefers-reduced-motion: reduce)')
+                : null;
+
+        const renderFrame = (t: number) => {
+            const current = stateRef.current;
+            const effectiveTime = current.time ?? t * 0.01;
+            program.uniforms.uTime.value = effectiveTime * current.speed * 0.1;
+            program.uniforms.uAmplitude.value = current.amplitude;
+            program.uniforms.uBlend.value = current.blend;
+            program.uniforms.uColorStops.value = current.colorStopsRgb;
+            renderer.render({ scene: mesh });
+        };
+
+        renderOnceRef.current = () => renderFrame(lastTime);
 
         function resize() {
             if (!ctn) return;
@@ -173,43 +222,57 @@ export default function Aurora(props: AuroraProps) {
             if (width === 0 || height === 0) return;
             renderer.setSize(width, height);
             program.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height];
+            if (motionQuery?.matches) {
+                renderFrame(lastTime);
+            }
         }
+
+        const update = (t: number) => {
+            lastTime = t;
+            renderFrame(t);
+            animateId = requestAnimationFrame(update);
+        };
+
+        const syncAnimation = () => {
+            if (motionQuery?.matches) {
+                if (animateId) {
+                    cancelAnimationFrame(animateId);
+                    animateId = 0;
+                }
+                renderFrame(lastTime);
+            } else if (!animateId) {
+                animateId = requestAnimationFrame(update);
+            }
+        };
+
         window.addEventListener('resize', resize);
         const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
         resizeObserver?.observe(ctn);
-
-        const mesh = new Mesh(gl, { geometry, program });
-        ctn.appendChild(gl.canvas);
-
-        let animateId = 0;
-        const update = (t: number) => {
-            animateId = requestAnimationFrame(update);
-            const { time = t * 0.01, speed = 1.0 } = propsRef.current;
-            program.uniforms.uTime.value = time * speed * 0.1;
-            program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-            program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-            const stops = propsRef.current.colorStops ?? colorStops;
-            program.uniforms.uColorStops.value = stops.map((hex) => {
-                const c = new Color(hex);
-                return [c.r, c.g, c.b];
-            });
-            renderer.render({ scene: mesh });
-        };
-        animateId = requestAnimationFrame(update);
+        motionQuery?.addEventListener('change', syncAnimation);
 
         resize();
+        syncAnimation();
 
         return () => {
-            cancelAnimationFrame(animateId);
+            renderOnceRef.current = null;
+            if (animateId) {
+                cancelAnimationFrame(animateId);
+            }
             window.removeEventListener('resize', resize);
             resizeObserver?.disconnect();
+            motionQuery?.removeEventListener('change', syncAnimation);
             if (ctn && gl.canvas.parentNode === ctn) {
                 ctn.removeChild(gl.canvas);
             }
             gl.getExtension('WEBGL_lose_context')?.loseContext();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [amplitude]);
+    }, []);
+
+    useEffect(() => {
+        if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            renderOnceRef.current?.();
+        }
+    }, [amplitude, blend, time, speed, colorStopsRgb]);
 
     return <div ref={ctnDom} className="aurora-container" />;
 }

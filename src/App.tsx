@@ -24,26 +24,47 @@ function App() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMenuClosing, setIsMenuClosing] = useState(false);
     const headerRef = useRef<HTMLElement | null>(null);
+    const menuTimerRef = useRef<number | null>(null);
+    const modalTimerRef = useRef<number | null>(null);
+
+    const clearMenuTimer = useCallback(() => {
+        if (menuTimerRef.current !== null) {
+            window.clearTimeout(menuTimerRef.current);
+            menuTimerRef.current = null;
+        }
+    }, []);
+
+    const clearModalTimer = useCallback(() => {
+        if (modalTimerRef.current !== null) {
+            window.clearTimeout(modalTimerRef.current);
+            modalTimerRef.current = null;
+        }
+    }, []);
 
     const closeMenu = useCallback(() => {
         if (!isMenuOpen || isMenuClosing) return;
+        clearMenuTimer();
         setIsMenuClosing(true);
-        setTimeout(() => {
+        menuTimerRef.current = window.setTimeout(() => {
             setIsMenuOpen(false);
             setIsMenuClosing(false);
+            menuTimerRef.current = null;
         }, 160);
-    }, [isMenuOpen, isMenuClosing]);
+    }, [isMenuOpen, isMenuClosing, clearMenuTimer]);
 
     const closeModal = useCallback(() => {
         if (!activeModal || isClosing) return;
+        clearModalTimer();
         setIsClosing(true);
-        setTimeout(() => {
+        modalTimerRef.current = window.setTimeout(() => {
             setActiveModal(null);
             setIsClosing(false);
+            modalTimerRef.current = null;
         }, 180);
-    }, [activeModal, isClosing]);
+    }, [activeModal, isClosing, clearModalTimer]);
 
     const openModal = (modalType: ModalType) => {
+        clearModalTimer();
         setActiveModal(modalType);
         setIsClosing(false);
         if (isMenuOpen) {
@@ -52,13 +73,21 @@ function App() {
     };
 
     const toggleMenu = () => {
-        if (isMenuOpen) {
+        if (isMenuOpen && !isMenuClosing) {
             closeMenu();
         } else {
+            clearMenuTimer();
             setIsMenuOpen(true);
             setIsMenuClosing(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            clearMenuTimer();
+            clearModalTimer();
+        };
+    }, [clearMenuTimer, clearModalTimer]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
